@@ -123,7 +123,7 @@ class BaseInfrence:
         window_sz = cfg.DETECT.WINDOW_SIZE
         if isinstance(window_sz, int):
             window_sz = (window_sz, window_sz)
-        window_sz = np.array([window_sz]).astype(np.int32)
+        window_sz = np.array(window_sz).astype(np.int32)
 
         overlap_ratio = cfg.DETECT.OVERLAP_WINSIZE
         step_size = [int((1-overlap_ratio) * size) for size in window_sz] # non-overlap size in h- and w- dim
