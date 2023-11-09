@@ -4,42 +4,34 @@ from multiprocessing import Pool
 
 
 class BaseInfrence:
-    def load_model(self, cfg, **kwargs):
-        """Load Detection model
-        Parameters:
-        -----------
-        cfg, CfgNode instance
-            param config
-        """
-        raise NotImplementedError
-
-
-    def detect(self, batch, **kwargs):
-        """Normal inference model
-        Parameters:
-        -----------
-        batch, b x [(H, W, 3)]:
-            list of input image
-
-        Returns:
-        ----------- 
-        results, b x [(n, 6)]:
-            list of detection of each batch
-        """
-        raise NotImplementedError
-
-
-    def normal_infer(self, batch, **kwargs):
+    def normal_infer(self, batch, det_function, **kwargs):
         """Normal model inference 
+
         Parameters:
         -----------
         batch, b x [(H, W, 3)]:
             list of input image
+        
+        det_function, 
+            a callable detection function 
+            parameters:
+            -----------
+            batch, b x [(H, W, 3)]:
+                list of input image
+            **kwargs
+            returns: list of detection for each batc
+        
+        **kwargs:
+            arguments option for detection function 
         """
-        return self.detect(batch, **kwargs)
+        return det_function(batch, **kwargs)
     
 
-    def grid_infer(self, batch, cfg, **kwargs):
+    def grid_infer(self, 
+                   batch, 
+                   grid_sz,
+                   det_function, 
+                   **kwargs):
         """Grid inference 
         Dividing input image into patches -> making detection on each patch -> remap 
 
@@ -47,17 +39,27 @@ class BaseInfrence:
         -----------
         batch, b x [(H, W, 3)]:
             list of input image
+        
+        grid_sz, int or tuple
+            grid size 
 
-        cfg, CfgNode instance
-            param config
-
+        det_function, 
+            a callable detection function  
+            batch, b x [(H, W, 3)]:
+                list of input image
+            **kwargs
+            returns: list of detection for each batch
+        
+        **kwargs:
+            arguments option for detection function
+            
         Returns:
         -----------
         The list containing the detection result of each image in batch
         """
         batch_shape = [img.shape[:2] for img in batch]
         batch_shape = np.array(batch_shape).reshape(-1, 2) # shape (N, 2)
-        grid_sz = cfg.DETECT.GRID_SIZE
+
         if isinstance(grid_sz, int):
             grid_sz = (grid_sz, grid_sz)
         grid_sz = np.array([grid_sz]).astype(np.int32) # shape (1, 2)
@@ -82,7 +84,7 @@ class BaseInfrence:
                                                 int(j*grid_sz[1]): int((j+1)*grid_sz[1]), ])
         
         remap = []
-        results = self.detect(patches, **kwargs)
+        results = det_function(patches, **kwargs)
         for idx, cs_num_grid in enumerate(cumsum_num_grid):
             # the detection result of one image
             if idx == 0:
@@ -102,30 +104,53 @@ class BaseInfrence:
         return remap
     
 
-    def sliding_window_infer(self, batch, cfg, **kwargs):
+    def sliding_window_infer(self, 
+                             batch, 
+                             window_sz, 
+                             overlap_ratio, 
+                             overlap_area_thresh,
+                             det_function,
+                             **kwargs):
         """Sliding window model inference 
         Sliding window through image -> detect in each window -> remap
-        
+
         Parameters:
         -----------
         batch, b x [(H, W, 3)]:
             list of input image
 
-        cfg, CfgNode instance
-            param config
+        window_sz, int or tuple:
+            window size
         
+        overlap_ratio, float:
+            must be in-range (0, 1). Window overlap ratio
+        
+        overlap_area_thresh, float:
+            must be in-range (0, 1). Overlap area thresh to do NMS
+
+        det_function, 
+            a callable detection function 
+            parameters:
+            -----------
+            batch, b x [(H, W, 3)]:
+                list of input image
+            **kwargs
+            returns: list of detection for each batc 
+        
+        **kwargs:
+            arguments option for detection function 
+
         Returns:
         -----------
         The list containing the detection result of each image in batch
         """
         batch_shape = [img.shape[:2] for img in batch]
         batch_shape = np.array(batch_shape).reshape(-1, 2) # shape (N, 2)
-        window_sz = cfg.DETECT.WINDOW_SIZE
+        
         if isinstance(window_sz, int):
             window_sz = (window_sz, window_sz)
         window_sz = np.array(window_sz).astype(np.int32)
 
-        overlap_ratio = cfg.DETECT.OVERLAP_WINSIZE
         step_size = [int((1-overlap_ratio) * size) for size in window_sz] # non-overlap size in h- and w- dim
                                                                           # shape (2,)
         num_grid_h = (batch_shape[:, 0] - window_sz[0]) / step_size[0] + 1 # shape (N, )
@@ -149,7 +174,7 @@ class BaseInfrence:
                                                 j*step_size[1]: j*step_size[1] + window_sz[1], ])
         
         remap = []
-        results = self.detect(patches, **kwargs)
+        results = det_function(patches, **kwargs)
         for idx, cs_num_grid in enumerate(cumsum_num_grid):
             if idx == 0:
                 result = results[:cs_num_grid]
@@ -166,7 +191,6 @@ class BaseInfrence:
             remap.append(r)
 
         assert len(remap) == len(batch)
-        overlap_area_thresh = cfg.DETECT.AREA_NMS_THRESH
         with Pool() as p:
             NMS_remap = p.starmap(area_NMS, zip(remap, 
                                                 [overlap_area_thresh for _ in range(len(remap))]))
@@ -192,9 +216,9 @@ def area_NMS(preds, overlap_area_thresh=0.7):
         xmax = np.min(bbes[..., 2], axis=1)
         ymax = np.min(bbes[..., 3], axis=1)
         request_bb = np.concatenate([xmin[:, None],
-                                      ymin[:, None],
-                                      xmax[:, None],
-                                      ymax[:, None]], axis=1) #shape N x 4
+                                     ymin[:, None],
+                                     xmax[:, None],
+                                     ymax[:, None]], axis=1) #shape N x 4
         check = (xmin < xmax) & (ymin < ymax)
         request_bb = request_bb[check] # Keep valid IOU values
         if request_bb.shape[0]==0:

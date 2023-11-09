@@ -6,14 +6,16 @@ import glob
 import os
 import cv2 as cv
 from tqdm import tqdm
+import torch
 
 from .tools import CustomEval
-from ..yolo8 import YOlO8
+from ..yolo8 import YOLO8
 
 
 def _run_eval(path, cfg_base, cfg_engine):
-    base_model = YOlO8(cfg_base)
-    engine_model = YOlO8(cfg_engine)
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    base_model = YOLO8(cfg_base)
+    engine_model = YOLO8(cfg_engine)
     _gts = defaultdict(list)
     _dts = []
 
@@ -44,9 +46,9 @@ def _run_eval(path, cfg_base, cfg_engine):
         })
 
         # store detection from engine
-        rengine = engine_model([img])
+        rengine = engine_model([img], device=device)
         for result in rengine[0]:
-            x1, y1, x2, y2, conf, c = result
+            x1, y1, x2, y2, conf, _ = result
             detection = {
                 "image_id": name[:-4],
                 "category_id": 1,

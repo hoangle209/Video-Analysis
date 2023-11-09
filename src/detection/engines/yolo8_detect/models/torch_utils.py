@@ -1,4 +1,5 @@
 from typing import List, Tuple, Union
+import numpy as np
 
 import torch
 import torch.nn.functional as F
@@ -59,7 +60,7 @@ def pose_postprocess(
     return bboxes, scores, kpts.reshape(idx.shape[0], -1, 3)
 
 
-def det_postprocess(data: Tuple[Tensor, Tensor, Tensor, Tensor]):
+def det_postprocess(data: Tuple[Tensor, Tensor, Tensor, Tensor], classes=(0,)):
     assert len(data) == 4
     iou_thres: float = 0.65
     num_dets, bboxes, scores, labels = data[0][0], data[1][0], data[2][
@@ -76,6 +77,12 @@ def det_postprocess(data: Tuple[Tensor, Tensor, Tensor, Tensor]):
     bboxes = bboxes[:nums]
     scores = scores[:nums]
     labels = labels[:nums]
+
+    if classes is not None:
+        idx = np.full(labels.shape[0], False)
+        for cls in classes:
+            idx |= (labels==cls)
+        bboxes, scores, labels = bboxes[idx], scores[idx], labels[idx]
 
     return bboxes, scores, labels
 
