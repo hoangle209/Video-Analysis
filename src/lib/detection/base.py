@@ -3,7 +3,7 @@ import math
 from multiprocessing import Pool
 
 
-class BaseInfrence:
+class BaseInference:
     def normal_infer(self, batch, det_function, **kwargs):
         """Normal model inference 
 
@@ -19,7 +19,7 @@ class BaseInfrence:
             batch, b x [(H, W, 3)]:
                 list of input image
             **kwargs
-            returns: list of detection for each batc
+            returns: list of detection for each batch
         
         **kwargs:
             arguments option for detection function 
@@ -62,7 +62,7 @@ class BaseInfrence:
 
         if isinstance(grid_sz, int):
             grid_sz = (grid_sz, grid_sz)
-        grid_sz = np.array([grid_sz]).astype(np.int32) # shape (1, 2)
+        grid_sz = np.array(grid_sz).astype(np.int32) # shape (1, 2)
 
         num_grids = np.ceil(batch_shape/grid_sz).astype(np.int32) # number of grids in h- and w- dims 
                                                                   # shape (N, 2)
@@ -135,7 +135,7 @@ class BaseInfrence:
             batch, b x [(H, W, 3)]:
                 list of input image
             **kwargs
-            returns: list of detection for each batc 
+            returns: list of detection for each batch 
         
         **kwargs:
             arguments option for detection function 
@@ -191,9 +191,15 @@ class BaseInfrence:
             remap.append(r)
 
         assert len(remap) == len(batch)
-        with Pool() as p:
-            NMS_remap = p.starmap(area_NMS, zip(remap, 
-                                                [overlap_area_thresh for _ in range(len(remap))]))
+
+        NMS_remap = []
+        for _r in remap:
+            NMS_remap.append(area_NMS(_r, overlap_area_thresh))
+
+        # TODO check why using Pool take longer runtime
+        # with Pool() as p: 
+        #     NMS_remap = p.starmap(area_NMS, zip(remap, 
+        #                                         [overlap_area_thresh for _ in range(len(remap))]))
         return NMS_remap
 
 
@@ -230,6 +236,47 @@ def area_NMS(preds, overlap_area_thresh=0.7):
         bb_area = (bb[0, 0, 2]-bb[0, 0, 0])*(bb[0, 0, 3]-bb[0, 0, 1])
         ratio = request_area / bb_area
         check = ratio > overlap_area_thresh
+        if np.any(check): 
+            continue
+        keep = np.concatenate([keep, preds[idx:idx+1]], axis=0)
+    
+    return keep[:, 0]
+
+def iou_NMS(preds, iou_thresh=0.7):
+    '''Non-max supression redundant bounding-boxes  
+    '''
+    preds = list(sorted(preds, key=lambda x: x[4], reverse=True)) # sorted by confidence
+    preds = np.array(preds).reshape(-1, 1, 6)
+
+    keep = preds[0:1]
+    for idx, bb in enumerate(preds[1:], start=1):
+        bb = np.array(bb).reshape(-1, 1, 6).repeat(keep.shape[0], axis=0)
+        bbes = np.concatenate([keep, bb], axis=1) # shape N x 2 x 4
+        
+        # calculate IOU of current box with all boxes in keep 
+        xmin = np.max(bbes[..., 0], axis=1) # shape N,
+        ymin = np.max(bbes[..., 1], axis=1)
+        xmax = np.min(bbes[..., 2], axis=1)
+        ymax = np.min(bbes[..., 3], axis=1)
+        request_bb = np.concatenate([xmin[:, None],
+                                     ymin[:, None],
+                                     xmax[:, None],
+                                     ymax[:, None]], axis=1) #shape N x 4
+        check = (xmin < xmax) & (ymin < ymax)
+        request_bb = request_bb[check] # Keep valid IOU values
+        if request_bb.shape[0]==0:
+            keep = np.concatenate([keep, preds[idx:idx+1]], axis=0)
+            continue
+        
+        check_keep = keep[check]
+        keep_side = check_keep[..., [2, 3]] - check_keep[..., [0, 1]]
+        keep_area = keep_side[:, 0, 0]*keep_side[:, 0, 1]
+
+        intersect_side = request_bb[..., [2, 3]] - request_bb[..., [0, 1]]
+        intersect_area = intersect_side[:, 0]*intersect_side[:, 1]
+        bb_area = (bb[0, 0, 2]-bb[0, 0, 0])*(bb[0, 0, 3]-bb[0, 0, 1])
+        ratio = intersect_area / (bb_area + keep_area - intersect_area)
+        check = ratio > iou_thresh
         if np.any(check): 
             continue
         keep = np.concatenate([keep, preds[idx:idx+1]], axis=0)

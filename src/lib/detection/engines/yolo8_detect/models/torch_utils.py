@@ -81,7 +81,7 @@ def det_postprocess(data: Tuple[Tensor, Tensor, Tensor, Tensor], classes=(0,)):
     if classes is not None:
         idx = np.full(labels.shape[0], False)
         for cls in classes:
-            idx |= (labels==cls)
+            idx |= (labels==cls).cpu().numpy()
         bboxes, scores, labels = bboxes[idx], scores[idx], labels[idx]
 
     return bboxes, scores, labels

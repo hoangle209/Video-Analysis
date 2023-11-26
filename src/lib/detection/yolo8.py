@@ -36,7 +36,7 @@ class YOLO8(BaseInfrence):
         # self.names = self.model.names 
 
 
-    def __detect(self, batch, **kwargs): # inference phase for spceify model 
+    def __detect(self, batch): # inference phase for spceify model 
         """YOLO8 inference
 
         Parameters:
@@ -45,50 +45,60 @@ class YOLO8(BaseInfrence):
             list of input images
         """
         classes = self.cfg.DETECT.CLASSES
-        device = kwargs.get('device', torch.device('cuda:0'))
+        device = torch.device(self.cfg.DETECT.DEVICES)
         if self.engine: # Run engine 
             results = yolo8engine(batch, 
                                   self.model, 
                                   classes=classes,
-                                  device=device
-                                  )
+                                  device=device, )
         else: # Run model
             imgsz = self.cfg.DETECT.SZ
             conf = self.cfg.DETECT.CONF
-            verbose = kwargs.get('verbose', False)
+            verbose = self.cfg.DETECT.VERBOSE
             results = self.model(batch,
-                                 imgsz = imgsz, 
+                                 imgsz=imgsz, 
                                  conf=conf,
                                  classes=classes,
                                  verbose=verbose,
-                                )
-            results = [pred.boxes.data.cpu().numpy() for  pred in results]
+                                 device=device, )
+            results = [pred.boxes.data.cpu().numpy() for pred in results]
         return results 
     
 
-    def detect(self, batch, **kwargs):
+    def normal_infer(self, batch):
+        return super().normal_infer(batch,
+                                    det_function=self.__detect, )
+
+
+    def grid_infer(self, batch, ):
+        grid_sz = self.cfg.DETECT.GRID.GRID_SIZE
+        return super().grid_infer(batch, 
+                                  grid_sz=grid_sz,
+                                  det_function=self.__detect, )
+
+
+    def sliding_window_infer(self, batch, ):
+        window_sz = self.cfg.DETECT.SLIDING_WINDOW.WINDOW_SIZE
+        overlap_ratio = self.cfg.DETECT.SLIDING_WINDOW.OVERLAP_WINDOW_SIZE_RATIO
+        overlap_area_thresh = self.cfg.DETECT.SLIDING_WINDOW.NMS_THRESH
+        return super().sliding_window_infer(batch, 
+                                            window_sz=window_sz, 
+                                            overlap_ratio=overlap_ratio, 
+                                            overlap_area_thresh=overlap_area_thresh,
+                                            det_function=self.__detect, )  
+
+
+    def detect(self, batch):
         method = self.cfg.DETECT.METHOD
         if method=='sliding_window':
-            window_sz = self.cfg.DETECT.WINDOW_SIZE
-            overlap_ratio = self.cfg.DETECT.OVERLAP_WINSIZE
-            overlap_area_thresh = self.cfg.DETECT.AREA_NMS_THRESH
-            results = self.sliding_window_infer(batch, 
-                                                window_sz, 
-                                                overlap_ratio, 
-                                                overlap_area_thresh,
-                                                self.__detect, 
-                                                **kwargs)
+            results = self.sliding_window_infer(batch, )
         elif method=='grid':
-            grid_sz = self.cfg.DETECT.GRID_SIZE
-            results = self.grid_infer(batch, 
-                                      grid_sz,
-                                      self.__detect, 
-                                      **kwargs)
+            results = self.grid_infer(batch, )
         else:
-            results = self.normal_infer(batch, self.__detect, **kwargs)
+            results = self.normal_infer(batch, )
         return results
 
 
-    def __call__(self, batch, **kwargs):
-        results = self.detect(batch, **kwargs)
+    def __call__(self, batch):
+        results = self.detect(batch)
         return results

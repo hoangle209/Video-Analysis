@@ -1,6 +1,6 @@
 from config.default import _C
-from detection.yolo8 import YOlO8
+from lib.detection.yolo8 import YOLO8
 
 if __name__ == '__main__':
-    v8 = YOlO8(_C.clone())
+    v8 = YOLO8(_C.clone())
     v8()
