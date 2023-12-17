@@ -9,7 +9,7 @@ from tqdm import tqdm
 import torch
 
 from .tools import CustomEval
-from ..yolo8 import YOLO8
+from ...yolo8 import YOLO8
 
 
 def _run_eval(path, cfg_base, cfg_engine):

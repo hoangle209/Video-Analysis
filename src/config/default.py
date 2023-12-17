@@ -16,7 +16,7 @@ _C.DETECT.METHOD = 'sliding_window' # inference mode: normal
                                     #                 silding_window   
 # some other configs
 _C.DETECT.DEVICES = 'cpu' # device
-_C.DETECT.VERBOSE = False # print results or not (for yolo family only)
+_C.DETECT.VERBOSE = False # whether to print the results
 
 
 # used for grid inference mode
@@ -29,13 +29,39 @@ _C.DETECT.SLIDING_WINDOW.WINDOW_SIZE = 640 # int or tuple
 _C.DETECT.SLIDING_WINDOW.OVERLAP_WINDOW_SIZE_RATIO = 0.3 # float or tuple, must be in-range (0, 1)
 _C.DETECT.SLIDING_WINDOW.NMS_THRESH = 0.65 # float, must be in-range (0, 1)
 
-
 # -----------------------------------------------------------------------------
 # SYNOPSIS TASK CONFIG
 # -----------------------------------------------------------------------------
 _C.SYNOPSIS = CN()
-_C.SYNOPSIS.TOTAL_LENGTH = 450 # frames
-_C.SYNOPSIS.FPS = 25
 
+_C.SYNOPSIS.MARK_FOLDER = 'src\\marker\\video4'
+
+_C.SYNOPSIS.START_FRAME = 0 # synopsis video starting frame index
+_C.SYNOPSIS.MAX_LENGTH = 250 # maximum synopsis video length (in frames)
+_C.SYNOPSIS.FPS = 30 # using to render synopsis video
+                     # -1 if using source video FPS
+
+_C.SYNOPSIS.OMEGA_A = 1 # activity weight
+_C.SYNOPSIS.OMEGA_C = 100 # collisions weight
+_C.SYNOPSIS.OMEGA_T = 0.01 # chronological weight
+_C.SYNOPSIS.OMEGA_SD = 1 # smooth and deviation weight
+
+
+# TUBE
 _C.SYNOPSIS.TUBE = CN() # a tube is used to manage an object 
 _C.SYNOPSIS.TUBE.UNIT_SEGMENT_LENGTH = 48
+_C.SYNOPSIS.TUBE.RATIO_SIZE_RANGE = [0.8, 1.]
+_C.SYNOPSIS.TUBE.RATIO_SPEED_RANGE = [0.3, 2.]
+
+_C.SYNOPSIS.TUBE.DEVIATION_SIGMA = 2. # emprically set as 2 
+_C.SYNOPSIS.TUBE.DEVIATION_WEIGHT_V = 10000 # velocity weight in deviation term
+_C.SYNOPSIS.TUBE.DEVIATION_WEIGHT_S = 10000 # size weight in deviation term
+_C.SYNOPSIS.TUBE.SMOOTH_WEIGHT_V = 0.01 # velocity weight in smooth term
+_C.SYNOPSIS.TUBE.SMOOTH_WEIGHT_S = 0.01 # size weight in smooth term
+
+
+# Markov-chain Monte-Carlo
+_C.SYNOPSIS.MCMC = CN()
+_C.SYNOPSIS.MCMC.NUM_ITERATIONS = 30000 # maximum num iterations to compute MCMC
+
+

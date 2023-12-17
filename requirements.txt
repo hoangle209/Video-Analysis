@@ -3,3 +3,4 @@ tensorrt
 onnx
 yacs
 progress
+scipy

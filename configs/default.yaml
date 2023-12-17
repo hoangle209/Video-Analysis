@@ -1,0 +1,38 @@
+# -----------------------------------------------------------------------------
+# DETECTION TASK CONFIG
+# -----------------------------------------------------------------------------
+DETECT:
+  MODEL: '' # model path
+  SZ: (800, 1440) # input size
+  CONF: 0.5
+  CLASSES: (0, ) # None for all classes
+  METHOD: 'normal' # inference mode: normal, grid, sliding_window
+  DEVICES: 'cpu'
+  VERBOSE: False
+
+  GRID:
+    GRID_SIZE: 640
+  
+  SLIDING_WINDOW:
+    WINDOW_SIZE: 640
+    OVERLAP_WINDOW_SIZE_RATIO: 0.3
+    NMS_THRESH: 0.65
+
+
+# -----------------------------------------------------------------------------
+# SYNOPSIS TASK CONFIG
+# -----------------------------------------------------------------------------
+SYNOPSIS:
+  MAX_LENGTH: 450 # maximum synopsis video length (in frames)
+  FPS: 25
+
+  TUBE: # a tube is used to manage an object 
+    UNIT_SEGMENT_LENGTH: 48
+    RATIO_SIZE_RANGE: [0.5, 1.]
+    RATIO_SPEED_RANGE: [0.3, 2.]
+    DEVIATION_SIGMA: 2.
+    DEVIATION_WEIGHT_V: 10000
+    DEVIATION_WEIGHT_S: 10000
+    SMOOTH_WEIGHT_V: 0.01
+    SMOOTH_WEIGHT_S: 0.01
+
