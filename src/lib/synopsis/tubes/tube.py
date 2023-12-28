@@ -60,8 +60,8 @@ class Tube:
 
         Paramters:
         ----------
-        v_tranlong, int:
-            maximum length of a synopsis tube's segment
+            v_tranlong, int:
+                maximum length of a synopsis tube's segment
         """
         unit_segment_length = self.cfg.SYNOPSIS.TUBE.UNIT_SEGMENT_LENGTH
         v_translate = np.empty(shape=(v_tranlong, v_tranlong), dtype=np.int64)
@@ -101,8 +101,8 @@ class Tube:
 
             Parameters:
             -----------
-            seg_length: int
-                current segment's length in synopsis video
+                seg_length: int
+                    current segment's length in synopsis video
             """
             return self.cfg.SYNOPSIS.TUBE.UNIT_SEGMENT_LENGTH / segment_length
         
@@ -115,8 +115,8 @@ class Tube:
         
         Parameters:
         -----------
-        mark_folder: str,
-            path to folder that store video's metadata
+            mark_folder: str,
+                path to folder that store video's metadata
         """
         self.frame_fg_bg_diff = np.zeros(shape=(self.src_length+self.cfg.SYNOPSIS.TUBE.UNIT_SEGMENT_LENGTH*3))
         with open(os.path.join(mark_folder, f'{self.ID}', 'value.txt'), 'r') as f:
@@ -131,8 +131,8 @@ class Tube:
 
         Parameters:
         -----------
-        mark_folder: str,
-            path to folder that store video's metadata
+            mark_folder: str,
+                path to folder that store video's metadata
         """
         self.frame_bounding_box = np.zeros(shape=(self.src_length, 4)) 
         with open(os.path.join(mark_folder, f'{self.ID}', 'node.txt'), 'r') as f:
@@ -143,7 +143,7 @@ class Tube:
 
     def __compute_activity_energy(self, synopsis_begin_frame, synopsis_video_length):
         """Compute activity energy of tube
-        - Used to preserve the objects into the synopsis video. 
+        Used to preserve the objects into the synopsis video. 
         """
         activity_energy = 0
         ts = self.time_start
@@ -161,9 +161,9 @@ class Tube:
 
     def __compute_smooth_and_deviation_energy(self):
         """Compute smooth and deviation energy of tube
-        - Smooth term, the speed and size variables of the same tube to vary smoothly over the segments
-            of the tube. 
-        - Deviation term, the speed and size should not be changed too much.
+        Smooth term, the speed and size variables of the same tube to vary smoothly over the segments
+        of the tube. 
+        Deviation term, the speed and size should not be changed too much.
         """
         smooth_energy = 0
         deviation_energy = 0
@@ -202,7 +202,7 @@ class Tube:
             tube_length = self.segments_length.sum()
         else:
             tube_length = self.segments_length[:-1].sum()
-            tube_length += remainder*(self.segments_length[-1] / self.cfg.SYNOPSIS.TUBE.UNIT_SEGMENT_LENGTH)
+            tube_length += int(remainder*(self.segments_length[-1] / self.cfg.SYNOPSIS.TUBE.UNIT_SEGMENT_LENGTH))
         return tube_length
 
 

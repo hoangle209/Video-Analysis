@@ -14,10 +14,10 @@ class ProductVideo:
         """
         Parameters:
         -----------
-        rect, ndarray | list:
-            xmin, ymin, w, h
-        ratio, float:
-            scaling ratio
+            rect, ndarray | list:
+                xmin, ymin, w, h
+            ratio, float:
+                scaling ratio
         """
         xmin, ymin, w, h = rect
         
@@ -39,16 +39,16 @@ class ProductVideo:
 
         Parameters:
         -----------
-        ID, int:
-            object ID
-        src_frame_idx, int:
-            frame index in source video, counted from 0
-        box, list | ndarray:
-            object's bounding box in source frame, xmin ymin w h
-        ratio, float:
-            ratio size
-        synopsis_frame_idx, float:
-            frame index of synopsis video that object will appear
+            ID, int:
+                storedID of an object, which value is trueID - 1 
+            src_frame_idx, int:
+                frame index in source video, counted from 0
+            box, list | ndarray:
+                object's bounding box in source frame, xmin ymin w h
+            ratio, float:
+                ratio size
+            synopsis_frame_idx, float:
+                frame index of synopsis video that object will appear
         """
         xmin, ymin, w, h = box # object's bounding box in source frame
 
@@ -57,7 +57,7 @@ class ProductVideo:
 
         # TODO reading frame
         path = 'src\\marker\\video4'
-        mask_path = os.path.join(path, str(ID), f'{src_idx}.png')
+        mask_path = os.path.join(path, str(ID+1), f'{src_idx}.png')
         src_frame_path = os.path.join(path, 'outputs', 'input', f'{src_idx}.png') # source frame
 
         mask = cv.imread(mask_path, cv.IMREAD_GRAYSCALE)
@@ -83,8 +83,8 @@ class ProductVideo:
 
         Parameters:
         -----------
-        ID, int:
-            object ID
+            ID, int:
+                storedID of an object, which value is trueID - 1 
         """
         unit_segment_length = self.cfg.SYNOPSIS.TUBE.UNIT_SEGMENT_LENGTH
         synopsis_frame_idx = int(self.__mcmc.tubes_manager.best_result[ID][0]) # tube synopsis starting frame
@@ -115,14 +115,14 @@ class ProductVideo:
     def __render(self):
         """
         """
-        for ID in range(self.__mcmc.tubes_manager.num_tubes):
-            self.__add_tube(ID)
+        for storedID in range(self.__mcmc.tubes_manager.num_tubes):
+            self.__add_tube(storedID)
 
             fps = self.__mcmc.tubes_manager.src_fps if self.cfg.SYNOPSIS.FPS == -1 \
                                                     else self.cfg.SYNOPSIS.FPS
             
         background = cv.imread('src\\marker\\video4\\0.png')
-        (H, W) = background.shape[:2] # TODO read background image shape(W, H)
+        (H, W) = background.shape[:2]
 
         writer = cv.VideoWriter('src\\marker\\video4\\filename.avi',
                                 cv.VideoWriter_fourcc(*'MJPG'),

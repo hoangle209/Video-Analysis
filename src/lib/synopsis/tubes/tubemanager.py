@@ -53,7 +53,7 @@ class TubeManager:
         for tube_idx in range(self.num_tubes):
             tube_data = tube_data_file.readline()
             tube_id, src_time_start, src_time_end = list(map(int, tube_data.split())) # ID, source frame start, source frame end 
-            
+                                                                                      # tube id is counted from 1, tube index is stored from 0
             self.tubes[tube_idx].initialization(tube_id, src_time_start, src_time_end)
             self.tubes[tube_idx].read_frame_bounding_box(self.mark_folder)
             self.tubes[tube_idx].read_frame_fg_bg_diff_value(self.mark_folder)
@@ -98,11 +98,12 @@ class TubeManager:
     
 
     def __compute_boxes_overlap(self, box1, box2, ratio_size1, ratio_size2):
-        """xmin, ymin, w, h, ratio_size
-        cx, cy = xmin + w/2, ymin + h/2
-        xmin_new = cx - w/2*ratio_size = xmin + w/2 - w/2*ratio_size = xmin + (1-ratio_size)*w/2
-        ymin_new = cy - h/2*ratio_size = ymin + h/2 = h/2*ratio_size = ymin + (1-ratio_size)*h/2
-        xmax_new, ymax_new = xmin_new + w*ratio_size, ymin_new + h*ratio_size
+        """Compute overlapping area of the two boxes
+        each box format is (xmin, ymin, w, h, ratio_size), new box value can be computed as follow:
+            cx, cy = xmin + w/2, ymin + h/2
+            xmin_new = cx - w/2*ratio_size = xmin + w/2 - w/2*ratio_size = xmin + (1-ratio_size)*w/2
+            ymin_new = cy - h/2*ratio_size = ymin + h/2 = h/2*ratio_size = ymin + (1-ratio_size)*h/2
+            xmax_new, ymax_new = xmin_new + w*ratio_size, ymin_new + h*ratio_size
         """
         x1min, y1min, w1, h1 = box1
         x2min, y2min, w2, h2 = box2
@@ -132,17 +133,19 @@ class TubeManager:
 
         Parameters:
         -----------
-        sooner_id, int
-        sooner_time_start, int
-        later_time_start, int
+            sooner_id, int:
+
+            sooner_time_start, int:
+
+            later_time_start, int:
 
         Returns:
         -----------
-        0: have collision, return:        
-         - synopsis segment index 
-         - synopsis frame index in that segment
+            0: have collision, return:        
+            - synopsis segment index 
+            - synopsis frame index in that segment
 
-        1: have no collision, return None
+            1: have no collision, return None
         """
         for i in range(self.tubes[sooner_id].num_segments): # i: segment index
             if sooner_time_start + self.tubes[sooner_id].segments_length[i] >= later_time_start:
@@ -174,23 +177,22 @@ class TubeManager:
 
         Parameters:
         -----------
-        reduce, str | None: 
-            default None, ['sum', 'none', None]
-            if two tubes do not have any collision, always return 0
-            else:
-                'None': return collsion energy for id1 each tube's segment 
-                'sum': return the total energy of tube 
-        
-        use_ratio_size, bool:
-            default False
+            reduce, str | None: 
+                default None, ['sum', 'none', None]
+                if two tubes do not have any collision, always return 0
+                else:
+                    'None': return collsion energy for id1 each tube's segment 
+                    'sum': return the total energy of tube 
+            use_ratio_size, bool:
+                default False
         """
-        collision_energy = np.zeros(shape=self.tubes[id1].num_segments)
         if id1 == id2:
             return 0
         if (self.tubes[id1].time_start > (self.tubes[id2].time_start + self.tubes[id2].get_tube_length()) or
             self.tubes[id2].time_start > (self.tubes[id1].time_start + self.tubes[id1].get_tube_length())
             ): return 0
         
+        collision_energy = np.zeros(shape=self.tubes[id1].num_segments)
         unit_tube_segment = self.cfg.SYNOPSIS.TUBE.UNIT_SEGMENT_LENGTH
         id1_segment_idx = 0
         id2_segment_idx = 0
@@ -233,7 +235,7 @@ class TubeManager:
                 self.tubes[id2].src_length > id2_src_frame_idx
                 ): break
             
-            if id1_time_start > self.synopsis_begin_frame and id1_time_start < (self.synopsis_begin_frame + self.synopsis_video_length):
+            if id1_time_start >= self.synopsis_begin_frame and id1_time_start <= (self.synopsis_begin_frame + self.synopsis_video_length):
                 q = self.__compute_boxes_overlap(self.tubes[id1].frame_bounding_box[id1_src_frame_idx],
                                                  self.tubes[id2].frame_bounding_box[id2_src_frame_idx],
                                                  self.tubes[id1].ratio_size[id1_segment_idx],
@@ -270,15 +272,14 @@ class TubeManager:
             return collision_energy.sum().item()
     
 
-    def __compute_time_energy(self, id1, id2): # TODO, why need to separate calculate time energy between 2 index
+    def __compute_time_energy(self, id1, id2): 
         """A tube appears earlier in the original video should be earlier in the synopsis video too.
         The chronological term is used to penalize the invert of the chronological order of any pair of object tubes.
         """
-        time_energy = 0
-
         if id1 == id2:
             return 0
         
+        time_energy = 0
         if (self.tubes[id1].src_time_start > self.tubes[id2].src_time_start and 
             self.tubes[id1].time_start < self.tubes[id2].time_start):     
 
@@ -412,7 +413,7 @@ class TubeManager:
             self.activity_energy[-1] += self.activity_energy[tube_idx]
             self.smooth_deviation_energy[-1] += self.smooth_deviation_energy[tube_idx]
 
-            self.collision_energy[tube_idx][-1] = 0
+            self.collision_energy[tube_idx, -1] = 0
 
             for tube_idx_2 in range(tube_idx, self.num_tubes):
                 if tube_idx == tube_idx_2:
@@ -442,20 +443,23 @@ class TubeManager:
     def get_energy(self,
                    ID=None,
                    temporary_time_start=None,
-                   temporary_seg_idx=None,
+                   temporary_seg_idx=0,
                    temporary_seg_length=None,
                    temporary_ratio_size=None):
         """Get total energy function 
 
         Parameters:
         -----------
-        ID, int:
-            default: None,
-            if specified return energy after exchange the arugments value of a IDth tube
-        temporary_time_start, int:
-        temporary_seg_idx, int:
-        temporary_seg_length, int:
-        temporary_ratio_size, int:
+            ID, int:
+                default: None,
+                if specified return energy after exchange the arugments value of a IDth tube
+            temporary_time_start, int:
+
+            temporary_seg_idx, int:
+
+            temporary_seg_length, int:
+
+            temporary_ratio_size, int:
         """
         if ID is not None:
             self.before_activity_energy = 0
@@ -478,7 +482,6 @@ class TubeManager:
             self.before_smooth_deviation_energy = self.tubes[ID].get_smooth_and_deviation_energy(temporary_seg_idx,
                                                                                                  temporary_seg_length,
                                                                                                  temporary_ratio_size, )
-            self.time_energy[ID, -1] = 0
 
             for i in range(self.num_tubes):
                 if i == ID:
@@ -502,9 +505,7 @@ class TubeManager:
                 self.before_time_energy[0, -1] += self.before_time_energy[0, i]
                 self.before_time_energy[1, -1] += self.before_time_energy[1, i]
                 
-                self.time_energy[ID, -1] += (self.time_energy[ID, i] + self.time_energy[i, ID])
-
-            self.collision_energy[:-1, -1] = np.zeros_like(self.collision_energy[:-1, -1])
+            self.time_energy[ID, -1] = (self.time_energy[ID, :-1].sum() + self.time_energy[:-1, ID].sum())
             self.collision_energy[:-1, -1] = self.collision_energy[:-1, :-1].sum(axis=1)
 
             self.before_time_energy[0, -1] += self.before_time_energy[1, -1]   
@@ -517,19 +518,10 @@ class TubeManager:
                       wc  * (self.collision_energy[-1, -1] + self.before_collision_energy[-1] - self.collision_energy[ID, -1]) + \
                       wt  * (self.time_energy[-1, -1] + self.before_time_energy[0, -1] - self.time_energy[ID, -1]) + \
                       wsd * (self.smooth_deviation_energy[-1] + self.before_smooth_deviation_energy - self.smooth_deviation_energy[ID])
-            
-            # print('------', self.activity_energy[-1] + self.before_activity_energy - self.activity_energy[ID], 
-            #       self.collision_energy[-1, -1] + self.before_collision_energy[-1] - self.collision_energy[ID, -1], 
-            #       self.time_energy[-1, -1] + self.before_time_energy[0, -1] - self.time_energy[ID, -1],
-            #       self.smooth_deviation_energy[-1] + self.before_smooth_deviation_energy - self.smooth_deviation_energy[ID])
             return _energy
         
         else:
             self.energy = self.__compute_energy()
-            # print(self.activity_energy[-1], 
-            #       self.collision_energy[-1, -1], 
-            #       self.time_energy[-1, -1],
-            #       self.smooth_deviation_energy[-1])
             return self.energy
 
 
@@ -540,6 +532,7 @@ class TubeManager:
             seg_length,
             ratio_size):
         """set value to IDth tube
+        
         Parameters:
         -----------
         """
@@ -578,15 +571,15 @@ class TubeManager:
 
         self.collision_energy[:-1, -1] = self.collision_energy[:-1, :-1].sum(axis=1)   
 
-        # wa  = self.cfg.SYNOPSIS.OMEGA_A  # activity weight
-        # wc  = self.cfg.SYNOPSIS.OMEGA_C  # collisions weight
-        # wt  = self.cfg.SYNOPSIS.OMEGA_T  # chronological weight
-        # wsd = self.cfg.SYNOPSIS.OMEGA_SD # smooth and deviation weight
+        wa  = self.cfg.SYNOPSIS.OMEGA_A  # activity weight
+        wc  = self.cfg.SYNOPSIS.OMEGA_C  # collisions weight
+        wt  = self.cfg.SYNOPSIS.OMEGA_T  # chronological weight
+        wsd = self.cfg.SYNOPSIS.OMEGA_SD # smooth and deviation weight
 
-        # self.energy =  wa  * self.activity_energy[-1]      + \
-        #                wc  * self.collision_energy[-1, -1] + \
-        #                wt  * self.time_energy[-1, -1]      + \
-        #                wsd * self.smooth_deviation_energy[-1]
+        self.energy =  wa  * self.activity_energy[-1]      + \
+                       wc  * self.collision_energy[-1, -1] + \
+                       wt  * self.time_energy[-1, -1]      + \
+                       wsd * self.smooth_deviation_energy[-1]
 
 
     def size_reset(self):

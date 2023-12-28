@@ -32,7 +32,7 @@ class MCMC:
         self.best_q = self.qsd
         
         # MCMC compute energy in form of Boltzmann-like density function
-        self.beta = (1 / self.qsd) * 600 
+        self.beta = (1 / self.qsd) * 600 # TODO, how to calculate beta in Boltzmann equation
         self.q_Boltzmann = self.__to_Boltzmann_like_value(self.qsd, self.beta) # convert energy to Boltzmann form
         
     
@@ -44,12 +44,12 @@ class MCMC:
         
         Parameters:
         -----------
-        beta, float:
-        q, float:
+            beta, float:
+            q, float:
         """
         # TODO, value = exp{-1 / 600} ????
         if beta is None:
-            beta = (1 / q) * 600 
+            beta = (1 / q) * 600
         return exp(-1 * beta * q) 
 
 
@@ -57,11 +57,14 @@ class MCMC:
         """Run Morkov-chain Monte-Carlo sampling to find optimal solution 
         """
         for i in tqdm(range(self.num_iters)):
-            ID = random.randint(0, self.tubes_manager.num_tubes - 1)
+            # ID is counted from 1, tube's index is stored from 0
+            __id = random.randint(1, self.tubes_manager.num_tubes) # True ID
+            ID = __id - 1                                          # stored ID
             flag = random.random() < 0.75
 
             if flag:
-                temporary_time_start = random.randint(0, self.tubes_manager.synopsis_begin_frame + self.tubes_manager.synopsis_video_length)
+                temporary_time_start = random.randint(self.tubes_manager.synopsis_begin_frame,
+                                                      self.tubes_manager.synopsis_begin_frame + self.tubes_manager.synopsis_video_length)
                 temporary_seg_length = maxsize
                 temporary_ratio_size = 0
                 temporary_seg_idx = 0
@@ -87,10 +90,8 @@ class MCMC:
                                                   temporary_seg_idx,
                                                   temporary_seg_length,
                                                   temporary_ratio_size)
-            # print('q value: ', tmp_q)
             tmp_q_Boltzmann = self.__to_Boltzmann_like_value(tmp_q, beta=self.beta)
             
-            # TODO why need this if statement ???
             if self.best_q > tmp_q:
                 self.best_q = tmp_q
 
@@ -100,14 +101,14 @@ class MCMC:
                     tube_numseg = self.tubes_manager.tubes[tube_idx].num_segments
                     self.tubes_manager.best_result[tube_idx][1: tube_numseg + 1] = self.tubes_manager.tubes[tube_idx].segments_length
                     self.tubes_manager.best_result[tube_idx][1 + tube_numseg: ] = self.tubes_manager.tubes[tube_idx].ratio_size
-                
+
                 if temporary_time_start != maxsize:
                     self.tubes_manager.best_result[ID][0] = temporary_time_start 
                 if temporary_seg_length != maxsize:
                     self.tubes_manager.best_result[ID][1 + temporary_seg_idx] = temporary_seg_length
                 if temporary_ratio_size != 0:
-                    self.tubes_manager.best_result[ID][1 + temporary_seg_idx + self.tubes_manager.tubes[tube_idx].num_segments] = temporary_ratio_size
-
+                    self.tubes_manager.best_result[ID][1 + temporary_seg_idx + self.tubes_manager.tubes[ID].num_segments] = temporary_ratio_size
+                
             alpha = np.minimum(1.0, tmp_q_Boltzmann / self.q_Boltzmann)
             accept_prob = random.random()
             if alpha.item() > accept_prob:
@@ -121,19 +122,31 @@ class MCMC:
                                        temporary_seg_idx,
                                        temporary_seg_length,
                                        temporary_ratio_size)
-        
+
         for tube_idx in range(self.tubes_manager.num_tubes):
-            self.tubes_manager.best_result[tube_idx][0] = self.tubes_manager.tubes[tube_idx].time_start
+            self.tubes_manager.tubes[tube_idx].time_start = int(self.tubes_manager.best_result[tube_idx][0]) 
             
             tube_numseg = self.tubes_manager.tubes[tube_idx].num_segments
-            self.tubes_manager.best_result[tube_idx][1: 1 + tube_numseg] = self.tubes_manager.tubes[tube_idx].segments_length
-            self.tubes_manager.best_result[tube_idx][1 + tube_numseg: ] = self.tubes_manager.tubes[tube_idx].ratio_size
+            self.tubes_manager.tubes[tube_idx].segments_length = self.tubes_manager.best_result[tube_idx][1: 1 + tube_numseg].astype(np.int64)
+            self.tubes_manager.tubes[tube_idx].ratio_size = self.tubes_manager.best_result[tube_idx][1 + tube_numseg: ] 
 
             self.tubes_manager.tubes[tube_idx].update_ratio_v()
 
         self.tubes_manager.v_reset()
         self.tubes_manager.size_reset()
         self.tubes_manager.size_smoothing()
+
+        print('\n--------- Final ----------')
+        for __id in range(self.tubes_manager.num_tubes):
+            print(f"""ID {__id+1} time start: {self.tubes_manager.best_result[__id][0]}, 
+                segment length: {self.tubes_manager.best_result[__id][1: 1 + self.tubes_manager.tubes[__id].num_segments]},
+                ratio: {self.tubes_manager.best_result[__id][1 + self.tubes_manager.tubes[__id].num_segments: ]}""")
+            
+        print('------ activity: ', self.tubes_manager.activity_energy[-1]) 
+        print('------ collision: ', self.tubes_manager.collision_energy[-1, -1]) 
+        print('------ time: ', self.tubes_manager.time_energy[-1, -1])
+        print('------ smooth: ', self.tubes_manager.smooth_deviation_energy[-1])
+        print('--------------------------')
     
 
     def run(self):

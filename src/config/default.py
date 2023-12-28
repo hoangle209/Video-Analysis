@@ -37,20 +37,20 @@ _C.SYNOPSIS = CN()
 _C.SYNOPSIS.MARK_FOLDER = 'src\\marker\\video4'
 
 _C.SYNOPSIS.START_FRAME = 0 # synopsis video starting frame index
-_C.SYNOPSIS.MAX_LENGTH = 250 # maximum synopsis video length (in frames)
+_C.SYNOPSIS.MAX_LENGTH = 200 # maximum synopsis video length (in frames)
 _C.SYNOPSIS.FPS = 30 # using to render synopsis video
                      # -1 if using source video FPS
 
 _C.SYNOPSIS.OMEGA_A = 1 # activity weight
 _C.SYNOPSIS.OMEGA_C = 100 # collisions weight
-_C.SYNOPSIS.OMEGA_T = 0.01 # chronological weight
-_C.SYNOPSIS.OMEGA_SD = 1 # smooth and deviation weight
+_C.SYNOPSIS.OMEGA_T = 1e-8 # chronological weight
+_C.SYNOPSIS.OMEGA_SD = 1e-3 # smooth and deviation weight
 
 
 # TUBE
 _C.SYNOPSIS.TUBE = CN() # a tube is used to manage an object 
 _C.SYNOPSIS.TUBE.UNIT_SEGMENT_LENGTH = 48
-_C.SYNOPSIS.TUBE.RATIO_SIZE_RANGE = [0.8, 1.]
+_C.SYNOPSIS.TUBE.RATIO_SIZE_RANGE = [0.9, 1.]
 _C.SYNOPSIS.TUBE.RATIO_SPEED_RANGE = [0.3, 2.]
 
 _C.SYNOPSIS.TUBE.DEVIATION_SIGMA = 2. # emprically set as 2 
@@ -62,6 +62,6 @@ _C.SYNOPSIS.TUBE.SMOOTH_WEIGHT_S = 0.01 # size weight in smooth term
 
 # Markov-chain Monte-Carlo
 _C.SYNOPSIS.MCMC = CN()
-_C.SYNOPSIS.MCMC.NUM_ITERATIONS = 30000 # maximum num iterations to compute MCMC
+_C.SYNOPSIS.MCMC.NUM_ITERATIONS = 300000 # maximum num iterations to compute MCMC
 
 
