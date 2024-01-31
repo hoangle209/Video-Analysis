@@ -9,20 +9,20 @@ class BaseInference:
 
         Parameters:
         -----------
-        batch, b x [(H, W, 3)]:
-            list of input image
-        
-        det_function, 
-            a callable detection function 
-            parameters:
-            -----------
             batch, b x [(H, W, 3)]:
                 list of input image
-            **kwargs
-            returns: list of detection for each batch
-        
-        **kwargs:
-            arguments option for detection function 
+            
+            det_function, 
+                a callable detection function 
+                parameters:
+                -----------
+                batch, b x [(H, W, 3)]:
+                    list of input image
+                **kwargs
+                returns: list of detection for each batch
+            
+            **kwargs:
+                arguments option for detection function 
         """
         return det_function(batch, **kwargs)
     
@@ -37,25 +37,25 @@ class BaseInference:
 
         Parameters:
         -----------
-        batch, b x [(H, W, 3)]:
-            list of input image
-        
-        grid_sz, int or tuple
-            grid size 
-
-        det_function, 
-            a callable detection function  
             batch, b x [(H, W, 3)]:
                 list of input image
-            **kwargs
-            returns: list of detection for each batch
-        
-        **kwargs:
-            arguments option for detection function
+            
+            grid_sz, int or tuple
+                grid size 
+
+            det_function, 
+                a callable detection function  
+                batch, b x [(H, W, 3)]:
+                    list of input image
+                **kwargs
+                returns: list of detection for each batch
+            
+            **kwargs:
+                arguments option for detection function
             
         Returns:
         -----------
-        The list containing the detection result of each image in batch
+             list containing the detection result of each image in batch
         """
         batch_shape = [img.shape[:2] for img in batch]
         batch_shape = np.array(batch_shape).reshape(-1, 2) # shape (N, 2)
@@ -116,33 +116,33 @@ class BaseInference:
 
         Parameters:
         -----------
-        batch, b x [(H, W, 3)]:
-            list of input image
-
-        window_sz, int or tuple:
-            window size
-        
-        overlap_ratio, float:
-            must be in-range (0, 1). Window overlap ratio
-        
-        overlap_area_thresh, float:
-            must be in-range (0, 1). Overlap area thresh to do NMS
-
-        det_function, 
-            a callable detection function 
-            parameters:
-            -----------
             batch, b x [(H, W, 3)]:
                 list of input image
-            **kwargs
-            returns: list of detection for each batch 
-        
-        **kwargs:
-            arguments option for detection function 
+
+            window_sz, int or tuple:
+                window size
+            
+            overlap_ratio, float:
+                must be in-range (0, 1). Window overlap ratio
+            
+            overlap_area_thresh, float:
+                must be in-range (0, 1). Overlap area thresh to do NMS
+
+            det_function, 
+                a callable detection function 
+                parameters:
+                -----------
+                batch, b x [(H, W, 3)]:
+                    list of input image
+                **kwargs
+                returns: list of detection for each batch 
+            
+            **kwargs:
+                arguments option for detection function 
 
         Returns:
         -----------
-        The list containing the detection result of each image in batch
+            The list containing the detection result of each image in batch
         """
         batch_shape = [img.shape[:2] for img in batch]
         batch_shape = np.array(batch_shape).reshape(-1, 2) # shape (N, 2)

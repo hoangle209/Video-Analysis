@@ -1,11 +1,19 @@
 from ultralytics import YOLO
 import torch
 
-from .base import BaseInfrence
-from .engines.yolo8_detect.models import TRTModule
-from .engines.yolo8_detect.run import yolo8engine
+from ..utils import get_pylogger
+from .base import BaseInference
 
-class YOLO8(BaseInfrence):
+LOGGER = get_pylogger(__name__)
+
+try:
+    from .engines.yolo8_detect.models import TRTModule
+    from .engines.yolo8_detect.run import yolo8engine
+except:
+    LOGGER.warning('Cannot import trt model')
+
+
+class YOLO8(BaseInference):
     def __init__(self, cfg):
         super().__init__()
         self.load_model(cfg)
@@ -20,7 +28,7 @@ class YOLO8(BaseInfrence):
             params config
         """
         self.cfg = cfg
-        model = self.cfg.DETECT.MODEL # model path
+        model = self.cfg.DETECT.WEIGHT # model path
 
         if isinstance(model, str):
             suffix = model.split('.')[-1]

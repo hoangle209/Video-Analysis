@@ -7,7 +7,7 @@ then choose a speed variable vij, and set it as l/e.
 if the modified variable is out of the user defined range [c, d], sample again.
 4. Randomly choose two tubes, and swap the values of their shift variables.
 """
-from dataclasses import dataclass
+
 from math import exp
 import numpy as np
 import random
@@ -16,23 +16,17 @@ from tqdm import tqdm
 
 from .tubes.tubemanager import TubeManager
 
-@dataclass
 class MCMC:
-    qsd: float # start energy value
-    best_q: float # best energy value
-    beta: float # beta value in Boltzmann function
-    q_Boltzmann: float # Boltzmann value from energy 
-
     def __init__(self, cfg):
         self.cfg = cfg
         self.num_iters = cfg.SYNOPSIS.MCMC.NUM_ITERATIONS
 
         self.tubes_manager = TubeManager(cfg)
         self.qsd = self.tubes_manager.get_energy() # initital energy
-        self.best_q = self.qsd
+        self.best_q = self.qsd # best energy value
         
         # MCMC compute energy in form of Boltzmann-like density function
-        self.beta = (1 / self.qsd) * 600 # TODO, how to calculate beta in Boltzmann equation
+        self.beta = (1 / self.qsd) * 600 # beta value in Boltzmann function
         self.q_Boltzmann = self.__to_Boltzmann_like_value(self.qsd, self.beta) # convert energy to Boltzmann form
         
     
@@ -58,7 +52,7 @@ class MCMC:
         """
         for i in tqdm(range(self.num_iters)):
             # ID is counted from 1, tube's index is stored from 0
-            __id = random.randint(1, self.tubes_manager.num_tubes) # True ID
+            __id = random.randint(1, self.tubes_manager.num_tubes) 
             ID = __id - 1                                          # stored ID
             flag = random.random() < 0.75
 

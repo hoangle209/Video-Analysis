@@ -43,7 +43,7 @@ class TubeManager:
         self.synopsis_begin_frame = cfg.SYNOPSIS.START_FRAME
         self.synopsis_video_length = cfg.SYNOPSIS.MAX_LENGTH
 
-        self.mark_folder = cfg.SYNOPSIS.MARK_FOLDER # TODO make mark folder link to tracking result save path
+        self.mark_folder = cfg.COMMON.MARKER_PATH # TODO make mark folder link to tracking result save path
         tube_data_file = open(os.path.join(self.mark_folder, 'tubeframe.txt'), 'r')
         self.src_fps = int(tube_data_file.readline())
         self.num_tubes = int(tube_data_file.readline())
@@ -149,20 +149,19 @@ class TubeManager:
         """
         for i in range(self.tubes[sooner_id].num_segments): # i: segment index
             if sooner_time_start + self.tubes[sooner_id].segments_length[i] >= later_time_start:
-
-                for j in range(self.tubes[sooner_id].segments_length[i]): # j: frame idx in a segment
-                    sooner_time_start += 1
-                    if sooner_time_start == later_time_start:
-                        unit_segment_length = self.cfg.SYNOPSIS.TUBE.UNIT_SEGMENT_LENGTH
-                        sooner_src_frame_idx_in_segment = self.tubes[sooner_id].v_translate[self.tubes[sooner_id].segments_length[i], j]
-                        if i * unit_segment_length + sooner_src_frame_idx_in_segment < self.tubes[sooner_id].src_length:
-                            sooner_segment_idx = i
-                            sooner_frame_idx_in_segment = j
-                            return 0, (sooner_time_start, 
-                                       sooner_segment_idx, 
-                                       sooner_frame_idx_in_segment)
-                        else:
-                            return 1, None
+                j = int(later_time_start - sooner_time_start) 
+                sooner_time_start += j
+                if sooner_time_start == later_time_start:
+                    unit_segment_length = self.cfg.SYNOPSIS.TUBE.UNIT_SEGMENT_LENGTH
+                    sooner_src_frame_idx_in_segment = self.tubes[sooner_id].v_translate[self.tubes[sooner_id].segments_length[i], j-1]
+                    if i * unit_segment_length + sooner_src_frame_idx_in_segment < self.tubes[sooner_id].src_length:
+                        sooner_segment_idx = i
+                        sooner_frame_idx_in_segment = j-1
+                        return 0, (sooner_time_start, 
+                                    sooner_segment_idx, 
+                                    sooner_frame_idx_in_segment)
+                    else:
+                        return 1, None
             else:
                 sooner_time_start += self.tubes[sooner_id].segments_length[i] 
         return 1, None
@@ -292,16 +291,18 @@ class TubeManager:
                         id1_synopsis_segment_length = self.tubes[id1].segments_length[id1_seg_idx]
                         id1_src_frame_idx = mark + self.tubes[id1].v_translate[id1_synopsis_segment_length, id1_frame_idx_in_seg]
                         time_energy += self.tubes[id1].frame_fg_bg_diff[id1_src_frame_idx]
-                    
+                    else:
+                        # The chronological term should be proportional to the temporal distance between two shifted tubes. 
+                        # Therefore define the following weight:
+                        weight = 1. / ((1 - min(abs(self.tubes[id1].time_start - self.tubes[id2].time_start), 
+                                                self.M) / self.M) **5 + 1e-5) - 1
+                        time_energy = weight * time_energy
+                        return time_energy
+
                     id1_time_start += 1
         
-        # The chronological term should be proportional to the temporal distance between two shifted tubes. 
-        # Therefore define the following weight:
-        weight = 1. / ((1 - min(abs(self.tubes[id1].time_start - self.tubes[id2].time_start), 
-                                self.M) / self.M) **5 + 1e-5) - 1
-        time_energy = weight * time_energy
         return time_energy
-    
+
 
     def get_collision_energy(self,
                              id1, id2,

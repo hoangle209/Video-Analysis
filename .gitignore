@@ -1,2 +1,8 @@
-**/marker/
-**/__pycache__/
+marker/
+**/*.pt
+**/*.pth
+**/__pycache__
+**/*.mp4
+**/.cache
+**/mmpose
+**/mmaction2

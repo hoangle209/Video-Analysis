@@ -7,13 +7,16 @@ _C = CN()
 # -----------------------------------------------------------------------------
 _C.DETECT = CN()
 
-_C.DETECT.MODEL = '' # model path
-_C.DETECT.SZ = 640 # input size
-_C.DETECT.CONF = 0.5
-_C.DETECT.CLASSES = (0, ) # None for all classes
-_C.DETECT.METHOD = 'sliding_window' # inference mode: normal
-                                    #                 grid
-                                    #                 silding_window   
+_C.DETECT.MODEL = 'yolov8'  # model path
+_C.DETECT.WEIGHT = 'weights\yolov8l_crowdhuman-human-only_50e_1024.pt'
+_C.DETECT.SZ = (768, 1280)  # input size
+_C.DETECT.CONF = 0.3
+_C.DETECT.CLASSES = (0, )   # None for all classes
+_C.DETECT.METHOD = 'normal' # inference mode: normal
+                            #                 grid
+                            #                 silding_window   
+_C.DETECT.NMS_THRESH = 0.65 # NMS threshold
+
 # some other configs
 _C.DETECT.DEVICES = 'cpu' # device
 _C.DETECT.VERBOSE = False # whether to print the results
@@ -29,26 +32,52 @@ _C.DETECT.SLIDING_WINDOW.WINDOW_SIZE = 640 # int or tuple
 _C.DETECT.SLIDING_WINDOW.OVERLAP_WINDOW_SIZE_RATIO = 0.3 # float or tuple, must be in-range (0, 1)
 _C.DETECT.SLIDING_WINDOW.NMS_THRESH = 0.65 # float, must be in-range (0, 1)
 
+
+# -----------------------------------------------------------------------------
+# TRACKING TASK CONFIG
+# -----------------------------------------------------------------------------
+_C.TRACK = CN()
+
+
+# -----------------------------------------------------------------------------
+# HMR TASK CONFIG
+# -----------------------------------------------------------------------------
+
+
+
+# -----------------------------------------------------------------------------
+# POSE TASK CONFIG
+# -----------------------------------------------------------------------------
+_C.POSE = CN()
+
+_C.POSE.MODEL = 'mmpose'
+_C.POSE.MODEL_CONFIG = ''
+_C.POSE.WEIGHT = ''
+_C.POSE.CONF = 0.3
+_C.POSE.DEVICES = 'cpu'
+
+
 # -----------------------------------------------------------------------------
 # SYNOPSIS TASK CONFIG
 # -----------------------------------------------------------------------------
 _C.SYNOPSIS = CN()
 
-_C.SYNOPSIS.MARK_FOLDER = 'src\\marker\\video4'
-
 _C.SYNOPSIS.START_FRAME = 0 # synopsis video starting frame index
-_C.SYNOPSIS.MAX_LENGTH = 200 # maximum synopsis video length (in frames)
+_C.SYNOPSIS.MAX_LENGTH = 250 # maximum synopsis video length (in frames)
 _C.SYNOPSIS.FPS = 30 # using to render synopsis video
                      # -1 if using source video FPS
 
 _C.SYNOPSIS.OMEGA_A = 1 # activity weight
 _C.SYNOPSIS.OMEGA_C = 100 # collisions weight
-_C.SYNOPSIS.OMEGA_T = 1e-8 # chronological weight
-_C.SYNOPSIS.OMEGA_SD = 1e-3 # smooth and deviation weight
+_C.SYNOPSIS.OMEGA_T = 1 # chronological weight
+_C.SYNOPSIS.OMEGA_SD = 1 # smooth and deviation weight
 
 
 # TUBE
 _C.SYNOPSIS.TUBE = CN() # a tube is used to manage an object 
+
+_C.SYNOPSIS.SAVENAME = 'default'
+
 _C.SYNOPSIS.TUBE.UNIT_SEGMENT_LENGTH = 48
 _C.SYNOPSIS.TUBE.RATIO_SIZE_RANGE = [0.9, 1.]
 _C.SYNOPSIS.TUBE.RATIO_SPEED_RANGE = [0.3, 2.]
@@ -62,6 +91,15 @@ _C.SYNOPSIS.TUBE.SMOOTH_WEIGHT_S = 0.01 # size weight in smooth term
 
 # Markov-chain Monte-Carlo
 _C.SYNOPSIS.MCMC = CN()
-_C.SYNOPSIS.MCMC.NUM_ITERATIONS = 300000 # maximum num iterations to compute MCMC
+_C.SYNOPSIS.MCMC.NUM_ITERATIONS = 3000 # maximum num iterations to compute MCMC
+
+
+# -----------------------------------------------------------------------------
+# COMMON CONFIG
+# -----------------------------------------------------------------------------
+_C.COMMON = CN()
+
+_C.COMMON.MARKER_PATH = 'marker\\video4' # path to store track logger information
+                                            # using to generate sysnopsis information
 
 

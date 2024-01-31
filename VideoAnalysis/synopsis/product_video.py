@@ -2,8 +2,11 @@ import cv2 as cv
 import os
 
 from .mcmc import MCMC
+from ..utils import get_pylogger
 
-class ProductVideo:
+LOGGER = get_pylogger(__name__)
+
+class SynopsisVideoProducer:
     def __init__(self, cfg):
         self.cfg = cfg
         self.__mcmc = MCMC(cfg)
@@ -40,7 +43,8 @@ class ProductVideo:
         Parameters:
         -----------
             ID, int:
-                storedID of an object, which value is trueID - 1 
+                storedID of an object, 
+                which value is the stored position ordinal number in a list of true ID  
             src_frame_idx, int:
                 frame index in source video, counted from 0
             box, list | ndarray:
@@ -56,8 +60,9 @@ class ProductVideo:
         src_idx = src_ts + src_frame_idx
 
         # TODO reading frame
-        path = 'src\\marker\\video4'
-        mask_path = os.path.join(path, str(ID+1), f'{src_idx}.png')
+        path = self.cfg.COMMON.MARKER_PATH
+        true_ID = self.__mcmc.tubes_manager.tubes[ID].ID # true object ID
+        mask_path = os.path.join(path, str(true_ID), f'{src_idx}.png')
         src_frame_path = os.path.join(path, 'outputs', 'input', f'{src_idx}.png') # source frame
 
         mask = cv.imread(mask_path, cv.IMREAD_GRAYSCALE)
@@ -84,7 +89,8 @@ class ProductVideo:
         Parameters:
         -----------
             ID, int:
-                storedID of an object, which value is trueID - 1 
+                storedID of an object, 
+                which value is the stored position ordinal number in a list of true ID  
         """
         unit_segment_length = self.cfg.SYNOPSIS.TUBE.UNIT_SEGMENT_LENGTH
         synopsis_frame_idx = int(self.__mcmc.tubes_manager.best_result[ID][0]) # tube synopsis starting frame
@@ -95,7 +101,7 @@ class ProductVideo:
 
             for frame_idx_in_seg in range(seg_length):
                 if self.video_frames[synopsis_frame_idx] is None: # TODO, why list index is out of range
-                    self.video_frames[synopsis_frame_idx] = cv.imread('src\\marker\\video4\\0.png')
+                    self.video_frames[synopsis_frame_idx] = cv.imread('marker\\video4\\0.png')
 
                 # source frame index of tube with ID (always counted from 0)
                 src_frame_idx = seg_idx*unit_segment_length + \
@@ -121,10 +127,10 @@ class ProductVideo:
             fps = self.__mcmc.tubes_manager.src_fps if self.cfg.SYNOPSIS.FPS == -1 \
                                                     else self.cfg.SYNOPSIS.FPS
             
-        background = cv.imread('src\\marker\\video4\\0.png')
+        background = cv.imread('marker\\video4\\0.png')
         (H, W) = background.shape[:2]
 
-        writer = cv.VideoWriter('src\\marker\\video4\\filename.avi',
+        writer = cv.VideoWriter('marker\\video4\\filename.avi',
                                 cv.VideoWriter_fourcc(*'MJPG'),
                                 fps,
                                 (W, H))

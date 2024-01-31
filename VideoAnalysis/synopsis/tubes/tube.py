@@ -23,9 +23,8 @@ class Tube:
     num_segments: int # the number of segments of a tube
     ratio_v: np.ndarray # speed ratio for each segment
     ratio_size: np.ndarray # size ratio for each segment
-    min_size: np.ndarray # minimum size of an object (for each segment ???) 
 
-    frame_fg_bg_diff: np.ndarray # total pixel values different between frames and background ???
+    frame_fg_bg_diff: np.ndarray # total pixel values different between frames and background
     frame_bounding_box: np.ndarray # objects's bounding box in frame
 
 
@@ -44,7 +43,6 @@ class Tube:
         self.num_segments = 0
         self.ratio_v = None 
         self.ratio_size = None 
-        self.min_size = None 
 
         self.frame_fg_bg_diff = None
         self.frame_bounding_box = None
@@ -86,7 +84,6 @@ class Tube:
         self.segments_length = np.full(shape=(self.num_segments, ), fill_value=unit_segment_length, dtype=np.int64)
         self.ratio_v = np.ones(shape=(self.num_segments, ))
         self.ratio_size = np.ones(shape=(self.num_segments, ))
-        self.min_size = np.full(shape=(self.num_segments, ), fill_value=maxsize)
 
         self.time_start = -1
         self.time_end = -1
@@ -126,7 +123,7 @@ class Tube:
                 self.frame_fg_bg_diff[idx] = int(value)
 
 
-    def read_frame_bounding_box(self, mark_folder): # TODO convert to store in json file
+    def read_frame_bounding_box(self, mark_folder): 
         """Read tube's bounding box in each individual frame
 
         Parameters:
